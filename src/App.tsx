@@ -2,6 +2,8 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import { BuiButtonReact as BuiButton } from 'bui/packages/ui/react'
+import 'bui/packages/ui/tokens.css'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -21,6 +23,12 @@ function App() {
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}
         </button>
+        <BuiButton
+          styleType="filled" 
+          size="large" 
+          label="Get Started"
+        >
+        </BuiButton>
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>

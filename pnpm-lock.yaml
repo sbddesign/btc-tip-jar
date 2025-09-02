@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      bui:
+        specifier: link:../bui
+        version: link:../bui
       react:
         specifier: ^19.1.1
         version: 19.1.1
