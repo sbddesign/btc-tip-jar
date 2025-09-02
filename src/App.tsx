@@ -46,14 +46,15 @@ function CustomAmountModal({
   isOpen, 
   onClose, 
   onConfirm, 
-  customAmount 
+  currentAmount,
+  onAmountChange
 }: {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (amount: number) => void;
-  customAmount: string;
+  currentAmount: string;
+  onAmountChange: (amount: string) => void;
 }) {
-  const [amount, setAmount] = useState(customAmount);
   const numpadRef = useRef<HTMLElement>(null);
   
   // Event listener for numpad-click events
@@ -66,18 +67,18 @@ function CustomAmountModal({
       
       const { number, content } = event.detail;
       
-      if (content === 'icon') {
-        // Handle backspace
-        setAmount(prev => prev.slice(0, -1) || '0');
-      } else {
-        // Handle number input
-        if (number === '.' && amount.includes('.')) return; // Prevent multiple decimal points
-        if (amount === '0' && number !== '.') {
-          setAmount(number);
+              if (content === 'icon') {
+          // Handle backspace
+          onAmountChange(currentAmount.slice(0, -1) || '0');
         } else {
-          setAmount(prev => prev + number);
+          // Handle number input
+          if (number === '.' && currentAmount.includes('.')) return; // Prevent multiple decimal points
+          if (currentAmount === '0' && number !== '.') {
+            onAmountChange(number);
+          } else {
+            onAmountChange(currentAmount + number);
+          }
         }
-      }
     };
 
     // Add event listener for the custom numpad-click event
@@ -87,16 +88,16 @@ function CustomAmountModal({
     return () => {
       numpadElement.removeEventListener('numpad-click', handleNumpadClick as EventListener);
     };
-  }, [isOpen, amount]);
+  }, [isOpen, currentAmount]);
   
   const handleConfirm = () => {
-    const numAmount = parseFloat(amount);
+    const numAmount = parseFloat(currentAmount);
     if (numAmount > 0) {
       onConfirm(numAmount);
     }
   };
   
-  const isAmountValid = parseFloat(amount) > 0;
+  const isAmountValid = parseFloat(currentAmount) > 0;
   
   if (!isOpen) return null;
   
@@ -105,12 +106,12 @@ function CustomAmountModal({
       <div className="bg-[var(--background)] rounded-[24px] flex flex-col lg:flex-row w-full max-w-6xl gap-6 p-6 lg:p-12 max-md:h-full overflow-x-hidden overflow-y-auto">
         <div className="lg:basis-3/5 lg:w-3/5">
           <h2 className="text-2xl lg:text-4xl text-center mb-6">Choose custom amount</h2>
-          <BuiAmountOptionTile
-            showMessage={false}
-            showEmoji={false}
-            primaryAmount={amount}
-            secondaryAmount={(parseFloat(amount) * 0.000025).toFixed(6)}
-          />
+                     <BuiAmountOptionTile
+             showMessage={false}
+             showEmoji={false}
+             primaryAmount={currentAmount}
+             secondaryAmount={(parseFloat(currentAmount) * 0.000025).toFixed(6)}
+           />
         </div>
                  <div className="lg:basis-2/5 lg:w-2/5 text-center flex flex-col items-center gap-6">
            {/* Numpad */}
@@ -143,7 +144,7 @@ function App() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
   const [tipOptionsState, setTipOptionsState] = useState(tipOptions)
   const [showCustomModal, setShowCustomModal] = useState(false)
-  const [customAmount, setCustomAmount] = useState('0')
+  const [currentInputAmount, setCurrentInputAmount] = useState('0')
 
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount)
@@ -161,7 +162,7 @@ function App() {
 
   const handleCustomConfirm = (amount: number) => {
     setSelectedAmount(amount)
-    setCustomAmount(amount.toString())
+    setCurrentInputAmount(amount.toString())
     setShowCustomModal(false)
     // Update the custom tile to show the selected amount
     setTipOptionsState(prev => 
@@ -212,7 +213,8 @@ function App() {
         ))}
         <BuiAmountOptionTile
           custom={true}
-          amountDefined={false}
+          amountDefined={currentInputAmount !== '0'}
+          primaryAmount={currentInputAmount}
           onClick={handleCustomSelect}
           selected={selectedAmount !== null && !tipOptionsState.some(opt => opt.selected)}
         />
@@ -232,7 +234,8 @@ function App() {
         isOpen={showCustomModal}
         onClose={() => setShowCustomModal(false)}
         onConfirm={handleCustomConfirm}
-        customAmount={customAmount}
+        currentAmount={currentInputAmount}
+        onAmountChange={setCurrentInputAmount}
       />
     </div>
   )
