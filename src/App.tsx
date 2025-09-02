@@ -11,9 +11,7 @@ const tipOptions = [
   {
     id: 1,
     primaryAmount: 10,
-    primarySymbol: '$',
     secondaryAmount: 8607,
-    secondarySymbol: '₿',
     emoji: '🧡',
     message: 'Super',
     selected: false
@@ -21,9 +19,7 @@ const tipOptions = [
   {
     id: 2,
     primaryAmount: 20,
-    primarySymbol: '$',
     secondaryAmount: 17214,
-    secondarySymbol: '₿',
     emoji: '🎉',
     message: 'Amazing',
     selected: false
@@ -31,9 +27,7 @@ const tipOptions = [
   {
     id: 3,
     primaryAmount: 50,
-    primarySymbol: '$',
     secondaryAmount: 43035,
-    secondarySymbol: '₿',
     emoji: '🔥',
     message: 'Incredible',
     selected: false
@@ -77,7 +71,7 @@ function App() {
       {/* Amount Selection Grid */}
       <div className="amount-grid">
         {tipOptionsState.map((option) => (
-          <div 
+          <div
             key={option.id}
             className={`amount-tile ${option.selected ? 'selected' : ''}`}
             onClick={() => handleAmountSelect(option.primaryAmount)}
@@ -85,30 +79,26 @@ function App() {
             <BuiAmountOptionTile
               emoji={option.emoji}
               message={option.message}
-              show-emoji="true"
-              show-message="true"
-              show-secondary-currency="true"
-              bitcoin-first="false"
-              custom="false"
-              amount-defined="true"
-              selected={option.selected ? "true" : "false"}
-              primary-amount={option.primaryAmount}
-              primary-symbol={option.primarySymbol}
-              secondary-amount={option.secondaryAmount}
-              secondary-symbol={option.secondarySymbol}
-              show-estimate="true"
-              primary-text-size="6xl"
-              secondary-text-size="2xl"
+              showEmoji={true}
+              showMessage={true}
+              showSecondaryCurrency={true}
+              custom={false}
+              selected={option.selected}
+              primaryAmount={option.primaryAmount}
+              primarySymbol={'$'}
+              secondaryAmount={option.secondaryAmount}
+              secondarySymbol={'₿'}
+              showEstimate={true}
+              primaryTextSize="6xl"
+              secondaryTextSize="2xl"
             />
           </div>
         ))}
-        
-        {/* Custom Amount Tile */}
-        <div className="amount-tile custom-tile">
-          <div className="custom-amount-content">
-            <h3>Custom Amount</h3>
-          </div>
-        </div>
+
+        <BuiAmountOptionTile
+          custom={true}
+          amountDefined={false}
+        />
       </div>
 
       {/* Continue Button */}
