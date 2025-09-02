@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import { 
   BuiAmountOptionTileReact as BuiAmountOptionTile,
@@ -6,6 +6,12 @@ import {
   BuiNumpadReact as BuiNumpad
 } from 'bui/packages/ui/react'
 import 'bui/packages/ui/tokens.css'
+
+// Type definition for NumPadClickDetail
+interface NumPadClickDetail {
+  number: string;
+  content: 'number' | 'icon';
+}
 
 // Mock data for the tip amounts
 const tipOptions = [
@@ -48,19 +54,40 @@ function CustomAmountModal({
   customAmount: string;
 }) {
   const [amount, setAmount] = useState(customAmount);
+  const numpadRef = useRef<HTMLElement>(null);
   
-  const handleNumberClick = (number: string) => {
-    if (number === '.' && amount.includes('.')) return; // Prevent multiple decimal points
-    if (amount === '0' && number !== '.') {
-      setAmount(number);
-    } else {
-      setAmount(prev => prev + number);
-    }
-  };
-  
-  const handleBackspace = () => {
-    setAmount(prev => prev.slice(0, -1) || '0');
-  };
+  // Event listener for numpad-click events
+  useEffect(() => {
+    const numpadElement = numpadRef.current;
+    if (!numpadElement || !isOpen) return;
+
+    const handleNumpadClick = (event: CustomEvent<NumPadClickDetail>) => {
+      console.log('NumPad click detected:', event.detail);
+      
+      const { number, content } = event.detail;
+      
+      if (content === 'icon') {
+        // Handle backspace
+        setAmount(prev => prev.slice(0, -1) || '0');
+      } else {
+        // Handle number input
+        if (number === '.' && amount.includes('.')) return; // Prevent multiple decimal points
+        if (amount === '0' && number !== '.') {
+          setAmount(number);
+        } else {
+          setAmount(prev => prev + number);
+        }
+      }
+    };
+
+    // Add event listener for the custom numpad-click event
+    numpadElement.addEventListener('numpad-click', handleNumpadClick as EventListener);
+
+    // Cleanup function to remove event listener
+    return () => {
+      numpadElement.removeEventListener('numpad-click', handleNumpadClick as EventListener);
+    };
+  }, [isOpen, amount]);
   
   const handleConfirm = () => {
     const numAmount = parseFloat(amount);
@@ -85,9 +112,9 @@ function CustomAmountModal({
             secondaryAmount={(parseFloat(amount) * 0.000025).toFixed(6)}
           />
         </div>
-        <div className="lg:basis-2/5 lg:w-2/5 text-center flex flex-col items-center gap-6">
-          {/* Numpad */}
-            <BuiNumpad />
+                 <div className="lg:basis-2/5 lg:w-2/5 text-center flex flex-col items-center gap-6">
+           {/* Numpad */}
+             <BuiNumpad ref={numpadRef} />
           
           {/* Action Buttons */}
           <div className="flex gap-6 w-full">
@@ -98,11 +125,12 @@ function CustomAmountModal({
               onClick={onClose}
             >
             </BuiButton>
-            <BuiButton
-              label="Continue"
-              wide={true}
-              onClick={handleConfirm}
-            >
+                         <BuiButton
+               label="Continue"
+               wide={true}
+               disabled={!isAmountValid}
+               onClick={handleConfirm}
+             >
             </BuiButton>
           </div>
         </div>
