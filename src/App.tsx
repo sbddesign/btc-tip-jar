@@ -69,32 +69,27 @@ function App() {
       </div>
 
       {/* Amount Selection Grid */}
-      <div className="amount-grid">
+      <div className="flex flex-col lg:flex-row w-full gap-6 max-md:max-w-md">
         {tipOptionsState.map((option) => (
-          <div
-            key={option.id}
-            className={`amount-tile ${option.selected ? 'selected' : ''}`}
+          <BuiAmountOptionTile
+            emoji={option.emoji}
+            message={option.message}
+            showEmoji={true}
+            showMessage={true}
+            showSecondaryCurrency={true}
+            custom={false}
+            selected={option.selected}
+            primaryAmount={option.primaryAmount}
+            primarySymbol={'$'}
+            secondaryAmount={option.secondaryAmount}
+            secondarySymbol={'₿'}
+            showEstimate={true}
+            primaryTextSize="6xl"
+            secondaryTextSize="2xl"
             onClick={() => handleAmountSelect(option.primaryAmount)}
-          >
-            <BuiAmountOptionTile
-              emoji={option.emoji}
-              message={option.message}
-              showEmoji={true}
-              showMessage={true}
-              showSecondaryCurrency={true}
-              custom={false}
-              selected={option.selected}
-              primaryAmount={option.primaryAmount}
-              primarySymbol={'$'}
-              secondaryAmount={option.secondaryAmount}
-              secondarySymbol={'₿'}
-              showEstimate={true}
-              primaryTextSize="6xl"
-              secondaryTextSize="2xl"
-            />
-          </div>
+            key={option.id}
+          />
         ))}
-
         <BuiAmountOptionTile
           custom={true}
           amountDefined={false}
