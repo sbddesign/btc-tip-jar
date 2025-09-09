@@ -6,6 +6,7 @@ import {
   BuiNumpadReact as BuiNumpad
 } from 'bui/packages/ui/react'
 import 'bui/packages/ui/tokens.css'
+import ReceiveScreen from './components/ReceiveScreen'
 
 // Type definition for NumPadClickDetail
 interface NumPadClickDetail {
@@ -145,6 +146,7 @@ function App() {
   const [tipOptionsState, setTipOptionsState] = useState(tipOptions)
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [currentInputAmount, setCurrentInputAmount] = useState('0')
+  const [showReceiveScreen, setShowReceiveScreen] = useState(false)
 
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount)
@@ -176,8 +178,28 @@ function App() {
   const handleContinue = () => {
     if (selectedAmount) {
       console.log(`Proceeding with tip amount: $${selectedAmount}`)
-      // TODO: Implement actual tip functionality
+      setShowReceiveScreen(true)
     }
+  }
+
+  const handleGoBack = () => {
+    setShowReceiveScreen(false)
+  }
+
+  const handleCopy = () => {
+    console.log('Payment details copied to clipboard!')
+    // You could show a toast notification here
+  }
+
+  // Show receive screen if user has selected amount and clicked continue
+  if (showReceiveScreen && selectedAmount) {
+    return (
+      <ReceiveScreen 
+        amount={selectedAmount}
+        onGoBack={handleGoBack}
+        onCopy={handleCopy}
+      />
+    );
   }
 
   return (
