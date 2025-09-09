@@ -41,11 +41,17 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy }: ReceiveScree
           amount,
           `Bitcoin tip for $${amount} - Max Eve Music & Art`
         );
+
+        console.log('Payment result:', result);
+        console.log('Lightning invoice:', result.lightningInvoice);
         
-        setPaymentData({
+        const newPaymentData = {
           lightningInvoice: result.lightningInvoice,
           onchainAddress: result.onchainAddress,
-        });
+        };
+        
+        console.log('Setting payment data:', newPaymentData);
+        setPaymentData(newPaymentData);
       } catch (err) {
         console.error('Failed to create payment:', err);
         
@@ -89,6 +95,11 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy }: ReceiveScree
     }
   };
 
+  // Debug logging
+  console.log('ReceiveScreen render - paymentData:', paymentData);
+  console.log('ReceiveScreen render - isLoading:', isLoading);
+  console.log('ReceiveScreen render - error:', error);
+
   return (
     <div className="bg-[var(--background)] min-h-screen flex flex-col items-center justify-start p-12 gap-12">
       {/* Header Section */}
@@ -108,9 +119,10 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy }: ReceiveScree
       {/* Bitcoin QR Display */}
       <div className="w-[392px]">
         <BuiBitcoinQrDisplay
+          key={paymentData?.lightningInvoice || 'loading'} // Force re-render when invoice changes
           address={paymentData?.onchainAddress || ''}
           lightning={paymentData?.lightningInvoice || ''}
-          option="unified"
+          option="lightning"
           selector="toggle"
           size={332}
           showImage={true}
