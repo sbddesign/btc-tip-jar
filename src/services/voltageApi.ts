@@ -18,23 +18,35 @@ export interface CreateReceivePaymentRequest {
   description?: string;
 }
 
-export interface PaymentMethod {
-  type: 'lightning_invoice' | 'onchain_address';
-  address?: string;
-  payment_request?: string;
-  expires_at?: string;
+export interface PaymentData {
+  amount_msats: number;
+  expiration?: string | null;
+  memo?: string;
+  payment_request: string; // Lightning invoice
+}
+
+export interface RequestedAmount {
+  amount: number;
+  currency: 'btc' | 'usd';
+  unit: 'msats' | 'sats' | 'btc';
 }
 
 export interface Payment {
   id: string;
+  organization_id: string;
+  environment_id: string;
   wallet_id: string;
-  amount: VoltageAmount;
-  description?: string;
-  status: 'pending' | 'completed' | 'failed' | 'expired';
+  bip21_uri?: string;
   created_at: string;
+  currency: 'btc' | 'usd';
+  data: PaymentData;
+  direction: 'receive' | 'send';
+  error?: string | null;
+  frozen: any[];
+  requested_amount: RequestedAmount;
+  status: 'receiving' | 'completed' | 'failed' | 'pending';
+  type: 'bolt11' | 'onchain' | 'bip21';
   updated_at: string;
-  payment_methods: PaymentMethod[];
-  metadata?: Record<string, string>;
 }
 
 export class VoltageApiError extends Error {
@@ -169,13 +181,13 @@ async function pollPaymentStatus(
     try {
       const payment = await voltageApi.getPayment(paymentId);
       
-      // Check if payment methods are available
-      if (payment.payment_methods && payment.payment_methods.length > 0) {
-        console.log(`Payment methods ready after ${attempt + 1} attempts`);
+      // Check if payment data is available with Lightning invoice
+      if (payment.data && payment.data.payment_request) {
+        console.log(`Payment data ready after ${attempt + 1} attempts`);
         return payment;
       }
       
-      console.log(`Attempt ${attempt + 1}: Payment methods not ready yet, polling again...`);
+      console.log(`Attempt ${attempt + 1}: Payment data not ready yet, polling again...`);
       
       // Wait before next attempt
       if (attempt < maxAttempts - 1) {
@@ -194,7 +206,7 @@ async function pollPaymentStatus(
     }
   }
   
-  throw new VoltageApiError('Payment methods not ready after maximum polling attempts');
+  throw new VoltageApiError('Payment data not ready after maximum polling attempts');
 }
 
 // Helper function to create tip payment methods
@@ -226,22 +238,15 @@ export async function createTipPaymentMethods(
     // Create the payment request (returns 202 with no body)
     await voltageApi.createPayment(paymentRequest);
     
-    console.log(`Payment request created with ID: ${paymentId}, polling for payment methods...`);
+    console.log(`Payment request created with ID: ${paymentId}, polling for payment data...`);
     
-    // Poll for payment status until payment methods are ready
+    // Poll for payment status until payment data is ready
     const payment = await pollPaymentStatus(paymentId);
 
-    // Extract payment methods
-    const lightningMethod = payment.payment_methods.find(
-      (method) => method.type === 'lightning_invoice'
-    );
-    const onchainMethod = payment.payment_methods.find(
-      (method) => method.type === 'onchain_address'
-    );
-
+    // Extract Lightning invoice from payment data
     return {
-      lightningInvoice: lightningMethod?.payment_request,
-      onchainAddress: onchainMethod?.address,
+      lightningInvoice: payment.data.payment_request,
+      onchainAddress: '', // Leave empty for bolt11 payments
       payment,
     };
   } catch (error) {
