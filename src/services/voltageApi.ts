@@ -1,0 +1,255 @@
+import { voltageConfig } from '../config/voltage';
+import { v4 as uuidv4 } from 'uuid';
+
+// Types based on Voltage API documentation
+export interface VoltageAmount {
+  amount: number;
+  currency: 'btc' | 'usd';
+  unit: 'sat' | 'msat' | 'btc' | 'usd';
+}
+
+// Receive payment request structure (what we need for creating invoices)
+export interface CreateReceivePaymentRequest {
+  id: string;
+  payment_kind: 'bolt11' | 'onchain' | 'bip21';
+  wallet_id: string;
+  amount_msats: number; // Amount in millisatoshis
+  currency: 'btc' | 'usd';
+  description?: string;
+}
+
+export interface PaymentMethod {
+  type: 'lightning_invoice' | 'onchain_address';
+  address?: string;
+  payment_request?: string;
+  expires_at?: string;
+}
+
+export interface Payment {
+  id: string;
+  wallet_id: string;
+  amount: VoltageAmount;
+  description?: string;
+  status: 'pending' | 'completed' | 'failed' | 'expired';
+  created_at: string;
+  updated_at: string;
+  payment_methods: PaymentMethod[];
+  metadata?: Record<string, string>;
+}
+
+export class VoltageApiError extends Error {
+  public status?: number;
+  public response?: any;
+
+  constructor(
+    message: string,
+    status?: number,
+    response?: any
+  ) {
+    super(message);
+    this.name = 'VoltageApiError';
+    this.status = status;
+    this.response = response;
+  }
+}
+
+class VoltageApi {
+  private baseUrl: string;
+  private apiKey: string;
+  private orgId: string;
+  private envId: string;
+
+  constructor() {
+    this.baseUrl = voltageConfig.baseUrl;
+    this.apiKey = voltageConfig.apiKey;
+    this.orgId = voltageConfig.orgId;
+    this.envId = voltageConfig.envId;
+  }
+
+  private async makeRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    
+    console.log('Voltage API Request:', { 
+      url, 
+      method: options.method || 'GET',
+      body: options.body ? JSON.parse(options.body as string) : null 
+    });
+    
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      
+      console.error('Voltage API Error:', { status: response.status, errorText });
+      
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.detail || errorMessage;
+      } catch {
+        // Use the raw text if it's not JSON
+        errorMessage = errorText || errorMessage;
+      }
+      
+      throw new VoltageApiError(errorMessage, response.status, errorText);
+    }
+
+    // Handle responses with no body (like 202)
+    if (response.status === 202 || response.headers.get('content-length') === '0') {
+      console.log('Voltage API Response: 202 Accepted (no body)');
+      return undefined as T;
+    }
+    
+    const result = await response.json();
+    console.log('Voltage API Response:', result);
+    return result;
+  }
+
+  async createPayment(request: CreateReceivePaymentRequest): Promise<void> {
+    // In production, use serverless function to avoid CORS issues
+    if (!import.meta.env.DEV) {
+      const response = await fetch('/api/voltage-payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new VoltageApiError(
+          `HTTP ${response.status}: ${response.statusText}`,
+          response.status,
+          errorText
+        );
+      }
+
+      // 202 response has no body, just return
+      return;
+    }
+
+    // Development: use proxy
+    const endpoint = `/organizations/${this.orgId}/environments/${this.envId}/payments`;
+    
+    await this.makeRequest<void>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getPayment(paymentId: string): Promise<Payment> {
+    const endpoint = `/organizations/${this.orgId}/environments/${this.envId}/payments/${paymentId}`;
+    
+    return this.makeRequest<Payment>(endpoint, {
+      method: 'GET',
+    });
+  }
+}
+
+export const voltageApi = new VoltageApi();
+
+// Helper function to poll payment status until payment methods are available
+async function pollPaymentStatus(
+  paymentId: string,
+  maxAttempts: number = 30,
+  intervalMs: number = 1000
+): Promise<Payment> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const payment = await voltageApi.getPayment(paymentId);
+      
+      // Check if payment methods are available
+      if (payment.payment_methods && payment.payment_methods.length > 0) {
+        console.log(`Payment methods ready after ${attempt + 1} attempts`);
+        return payment;
+      }
+      
+      console.log(`Attempt ${attempt + 1}: Payment methods not ready yet, polling again...`);
+      
+      // Wait before next attempt
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    } catch (error) {
+      console.error(`Polling attempt ${attempt + 1} failed:`, error);
+      
+      // If it's the last attempt, throw the error
+      if (attempt === maxAttempts - 1) {
+        throw error;
+      }
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+  }
+  
+  throw new VoltageApiError('Payment methods not ready after maximum polling attempts');
+}
+
+// Helper function to create tip payment methods
+export async function createTipPaymentMethods(
+  amountUsd: number,
+  description: string = 'Bitcoin Tip'
+): Promise<{
+  lightningInvoice?: string;
+  onchainAddress?: string;
+  payment: Payment;
+}> {
+  try {
+    // Convert USD to satoshis, then to millisatoshis
+    // For now, using a rough estimate: 1 USD ≈ 2500 sats (this should be dynamic)
+    const amountSats = Math.round(amountUsd * 2500);
+    const amountMsats = amountSats * 1000; // Convert sats to millisats
+
+    const paymentId = uuidv4(); // Generate unique ID for this payment request
+    
+    const paymentRequest: CreateReceivePaymentRequest = {
+      id: paymentId,
+      payment_kind: 'bolt11', // Creates unified payment supporting both Lightning and onchain
+      wallet_id: voltageConfig.walletId,
+      amount_msats: amountMsats, // Amount in millisatoshis
+      currency: 'btc',
+      description,
+    };
+
+    // Create the payment request (returns 202 with no body)
+    await voltageApi.createPayment(paymentRequest);
+    
+    console.log(`Payment request created with ID: ${paymentId}, polling for payment methods...`);
+    
+    // Poll for payment status until payment methods are ready
+    const payment = await pollPaymentStatus(paymentId);
+
+    // Extract payment methods
+    const lightningMethod = payment.payment_methods.find(
+      (method) => method.type === 'lightning_invoice'
+    );
+    const onchainMethod = payment.payment_methods.find(
+      (method) => method.type === 'onchain_address'
+    );
+
+    return {
+      lightningInvoice: lightningMethod?.payment_request,
+      onchainAddress: onchainMethod?.address,
+      payment,
+    };
+  } catch (error) {
+    if (error instanceof VoltageApiError) {
+      throw error;
+    }
+    throw new VoltageApiError(
+      `Failed to create payment: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}

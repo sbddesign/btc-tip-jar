@@ -1,7 +1,13 @@
+import { useState, useEffect } from 'react';
 import { 
   BuiBitcoinQrDisplayReact as BuiBitcoinQrDisplay,
   BuiButtonReact as BuiButton,
 } from 'bui/packages/ui/react';
+import { 
+  createTipPaymentMethods,
+  VoltageApiError
+} from '../services/voltageApi';
+import { isVoltageConfigured } from '../config/voltage';
 
 interface ReceiveScreenProps {
   amount: number;
@@ -9,17 +15,75 @@ interface ReceiveScreenProps {
   onCopy: () => void;
 }
 
-// Fake Bitcoin data - will be replaced with real API later
-const FAKE_ONCHAIN_ADDRESS = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh';
-const FAKE_LIGHTNING_INVOICE = 'lnbc1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq8rkx3yf5tcsyz3d73gafnh3cax9rn449d9p5uxz9ezhhypd0elx87sjle52x86fux2ypatgddc6k63n7erqz25le42c4u4ecky03ylcqca784w';
+interface PaymentData {
+  lightningInvoice?: string;
+  onchainAddress?: string;
+}
 
-export default function ReceiveScreen({ onGoBack, onCopy }: ReceiveScreenProps) {
+export default function ReceiveScreen({ amount, onGoBack, onCopy }: ReceiveScreenProps) {
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const createPayment = async () => {
+      if (!isVoltageConfigured()) {
+        setError('Voltage API is not properly configured');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const result = await createTipPaymentMethods(
+          amount,
+          `Bitcoin tip for $${amount} - Max Eve Music & Art`
+        );
+        
+        setPaymentData({
+          lightningInvoice: result.lightningInvoice,
+          onchainAddress: result.onchainAddress,
+        });
+      } catch (err) {
+        console.error('Failed to create payment:', err);
+        
+        if (err instanceof VoltageApiError) {
+          setError(`Payment creation failed: ${err.message}`);
+        } else {
+          setError('Failed to create payment. Please try again.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    createPayment();
+  }, [amount]);
+
   const handleCopy = async () => {
     try {
-      // Copy the unified BIP21 string
-      const unifiedString = `bitcoin:${FAKE_ONCHAIN_ADDRESS}?lightning=${FAKE_LIGHTNING_INVOICE}`;
-      await navigator.clipboard.writeText(unifiedString);
-      onCopy();
+      if (!paymentData?.onchainAddress && !paymentData?.lightningInvoice) {
+        console.error('No payment data available to copy');
+        return;
+      }
+
+      let textToCopy = '';
+      
+      if (paymentData.onchainAddress && paymentData.lightningInvoice) {
+        // Create unified BIP21 string
+        textToCopy = `bitcoin:${paymentData.onchainAddress}?lightning=${paymentData.lightningInvoice}`;
+      } else if (paymentData.lightningInvoice) {
+        textToCopy = paymentData.lightningInvoice;
+      } else if (paymentData.onchainAddress) {
+        textToCopy = paymentData.onchainAddress;
+      }
+
+      if (textToCopy) {
+        await navigator.clipboard.writeText(textToCopy);
+        onCopy();
+      }
     } catch (error) {
       console.error('Failed to copy:', error);
     }
@@ -44,8 +108,8 @@ export default function ReceiveScreen({ onGoBack, onCopy }: ReceiveScreenProps) 
       {/* Bitcoin QR Display */}
       <div className="w-[392px]">
         <BuiBitcoinQrDisplay
-          address={FAKE_ONCHAIN_ADDRESS}
-          lightning={FAKE_LIGHTNING_INVOICE}
+          address={paymentData?.onchainAddress || ''}
+          lightning={paymentData?.lightningInvoice || ''}
           option="unified"
           selector="toggle"
           size={332}
@@ -53,6 +117,9 @@ export default function ReceiveScreen({ onGoBack, onCopy }: ReceiveScreenProps) 
           dotType="dots"
           dotColor="#000000"
           copyOnTap={true}
+          placeholder={isLoading}
+          error={!!error}
+          errorMessage={error || undefined}
         />
       </div>
 
@@ -66,10 +133,11 @@ export default function ReceiveScreen({ onGoBack, onCopy }: ReceiveScreenProps) 
           onClick={onGoBack}
         />
         <BuiButton
-          label="Copy"
+          label={isLoading ? "Loading..." : "Copy"}
           styleType="filled"
           size="large"
           wide={true}
+          disabled={isLoading || !!error || !paymentData}
           onClick={handleCopy}
         />
       </div>

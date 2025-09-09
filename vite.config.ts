@@ -8,4 +8,16 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  server: {
+    proxy: {
+      '/api/voltage': {
+        target: 'https://voltageapi.com/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/voltage/, ''),
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        }
+      }
+    }
+  }
 })
