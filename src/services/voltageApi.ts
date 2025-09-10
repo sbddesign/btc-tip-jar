@@ -263,6 +263,14 @@ export async function createTipPaymentMethods(
   payment: Payment;
   pollForCompletion: () => Promise<Payment>;
 }> {
+  // Validate inputs and configuration before proceeding
+  if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
+    throw new VoltageApiError('Amount must be a positive number');
+  }
+  if (!voltageConfig.walletId) {
+    throw new VoltageApiError('Voltage wallet is not configured');
+  }
+
   try {
     // Convert USD to satoshis using real-time Bitcoin price
     console.log(`Converting $${amountUsd} USD to satoshis...`);
@@ -279,6 +287,7 @@ export async function createTipPaymentMethods(
       currency: 'btc',
       description,
     };
+    // …rest of existing logic…
 
     // Create the payment request (returns 202 with no body)
     await voltageApi.createPayment(paymentRequest);
