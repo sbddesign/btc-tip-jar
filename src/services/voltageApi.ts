@@ -1,5 +1,6 @@
 import { voltageConfig } from '../config/voltage';
 import { v4 as uuidv4 } from 'uuid';
+import { convertUsdToSats } from './priceApi';
 
 // Types based on Voltage API documentation
 export interface VoltageAmount {
@@ -263,9 +264,9 @@ export async function createTipPaymentMethods(
   pollForCompletion: () => Promise<Payment>;
 }> {
   try {
-    // Convert USD to satoshis, then to millisatoshis
-    // For now, using a rough estimate: 1 USD ≈ 2500 sats (this should be dynamic)
-    const amountSats = Math.round(amountUsd * 2500);
+    // Convert USD to satoshis using real-time Bitcoin price
+    console.log(`Converting $${amountUsd} USD to satoshis...`);
+    const amountSats = await convertUsdToSats(amountUsd);
     const amountMsats = amountSats * 1000; // Convert sats to millisats
 
     const paymentId = uuidv4(); // Generate unique ID for this payment request

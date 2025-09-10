@@ -8,6 +8,7 @@ import {
 import 'bui/packages/ui/tokens.css'
 import ReceiveScreen from './components/ReceiveScreen'
 import SuccessScreen from './components/SuccessScreen'
+import { getCurrentBtcPrice, PriceApiError } from './services/priceApi'
 
 // Type definition for NumPadClickDetail
 interface NumPadClickDetail {
@@ -15,12 +16,21 @@ interface NumPadClickDetail {
   content: 'number' | 'icon';
 }
 
-// Mock data for the tip amounts
-const tipOptions = [
+// Type definition for tip options
+interface TipOption {
+  id: number;
+  primaryAmount: number;
+  secondaryAmount: number;
+  emoji: string;
+  message: string;
+  selected: boolean;
+}
+
+// Base tip amounts (USD) - secondary amounts (sats) will be calculated dynamically
+const baseTipOptions = [
   {
     id: 1,
     primaryAmount: 10,
-    secondaryAmount: 8607,
     emoji: '🧡',
     message: 'Super',
     selected: false
@@ -28,7 +38,6 @@ const tipOptions = [
   {
     id: 2,
     primaryAmount: 20,
-    secondaryAmount: 17214,
     emoji: '🎉',
     message: 'Amazing',
     selected: false
@@ -36,7 +45,6 @@ const tipOptions = [
   {
     id: 3,
     primaryAmount: 50,
-    secondaryAmount: 43035,
     emoji: '🔥',
     message: 'Incredible',
     selected: false
@@ -144,11 +152,62 @@ function CustomAmountModal({
 
 function App() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
-  const [tipOptionsState, setTipOptionsState] = useState(tipOptions)
+  const [tipOptionsState, setTipOptionsState] = useState<TipOption[]>([])
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [currentInputAmount, setCurrentInputAmount] = useState('0')
   const [showReceiveScreen, setShowReceiveScreen] = useState(false)
   const [showSuccessScreen, setShowSuccessScreen] = useState(false)
+  const [isLoadingPrices, setIsLoadingPrices] = useState(true)
+  const [priceError, setPriceError] = useState<string | null>(null)
+
+  // Load Bitcoin price and calculate secondary amounts on component mount
+  useEffect(() => {
+    const loadPricesAndCalculateAmounts = async () => {
+      try {
+        setIsLoadingPrices(true)
+        setPriceError(null)
+        
+        console.log('Loading Bitcoin price...')
+        const btcPrice = await getCurrentBtcPrice()
+        
+        // Calculate secondary amounts (satoshis) for each tip option
+        const tipOptionsWithSats: TipOption[] = baseTipOptions.map(option => {
+          const btcAmount = option.primaryAmount / btcPrice
+          const satoshis = Math.round(btcAmount * 100_000_000) // Convert to sats
+          
+          return {
+            ...option,
+            secondaryAmount: satoshis
+          }
+        })
+        
+        console.log('Tip options with calculated sats:', tipOptionsWithSats)
+        setTipOptionsState(tipOptionsWithSats)
+        
+      } catch (error) {
+        console.error('Failed to load Bitcoin price:', error)
+        
+        if (error instanceof PriceApiError) {
+          setPriceError(`Failed to load Bitcoin price: ${error.message}`)
+        } else {
+          setPriceError('Failed to load Bitcoin price. Please try again.')
+        }
+        
+        // Use fallback prices if API fails
+        const fallbackOptions: TipOption[] = baseTipOptions.map(option => ({
+          ...option,
+          secondaryAmount: Math.round(option.primaryAmount * 1500) // Rough fallback: $1 ≈ 1500 sats
+        }))
+        
+        setTipOptionsState(fallbackOptions)
+        
+      } finally {
+        setIsLoadingPrices(false)
+      }
+    }
+
+    loadPricesAndCalculateAmounts()
+  }, [])
 
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount)
@@ -204,7 +263,7 @@ function App() {
     setShowReceiveScreen(false)
     setSelectedAmount(null)
     setCurrentInputAmount('0')
-    setTipOptionsState(tipOptions.map(option => ({ ...option, selected: false })))
+    setTipOptionsState(prev => prev.map(option => ({ ...option, selected: false })))
   }
 
   // Show success screen if payment is completed
@@ -238,45 +297,66 @@ function App() {
           <p className="text-3xl lg:text-5xl">Send Max a tip for a great show</p>
       </header>
 
-      <div className="flex flex-col lg:flex-row w-full gap-6 max-w-xl lg:max-w-7xl mx-auto">
-        {tipOptionsState.map((option) => (
-          <BuiAmountOptionTile
-            emoji={option.emoji}
-            message={option.message}
-            showEmoji={true}
-            showMessage={true}
-            showSecondaryCurrency={true}
-            custom={false}
-            selected={option.selected}
-            primaryAmount={option.primaryAmount}
-            primarySymbol={'$'}
-            secondaryAmount={option.secondaryAmount}
-            secondarySymbol={'₿'}
-            showEstimate={true}
-            primaryTextSize="6xl"
-            secondaryTextSize="2xl"
-            onClick={() => handleAmountSelect(option.primaryAmount)}
-            key={option.id}
-          />
-        ))}
-        <BuiAmountOptionTile
-          custom={true}
-          amountDefined={currentInputAmount !== '0'}
-          primaryAmount={currentInputAmount}
-          onClick={handleCustomSelect}
-          selected={selectedAmount !== null && !tipOptionsState.some(opt => opt.selected)}
-        />
-      </div>
+      {/* Loading state */}
+      {isLoadingPrices && (
+        <div className="flex flex-col items-center gap-4 py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--text-primary)]"></div>
+          <p className="text-[var(--text-secondary)]">Loading Bitcoin prices...</p>
+        </div>
+      )}
 
-      <div className="text-center">
-        <BuiButton
-          style-type="filled"
-          size="large"
-          label="Continue"
-          disabled={!selectedAmount}
-          onClick={handleContinue}
-        />
-      </div>
+      {/* Price error state */}
+      {priceError && (
+        <div className="flex flex-col items-center gap-4 py-4">
+          <p className="text-red-500 text-sm">⚠️ {priceError}</p>
+          <p className="text-[var(--text-secondary)] text-xs">Using approximate prices</p>
+        </div>
+      )}
+
+      {/* Tip options */}
+      {!isLoadingPrices && (
+        <div className="flex flex-col lg:flex-row w-full gap-6 max-w-xl lg:max-w-7xl mx-auto">
+          {tipOptionsState.map((option) => (
+            <BuiAmountOptionTile
+              emoji={option.emoji}
+              message={option.message}
+              showEmoji={true}
+              showMessage={true}
+              showSecondaryCurrency={true}
+              custom={false}
+              selected={option.selected}
+              primaryAmount={option.primaryAmount}
+              primarySymbol={'$'}
+              secondaryAmount={option.secondaryAmount}
+              secondarySymbol={'₿'}
+              showEstimate={true}
+              primaryTextSize="6xl"
+              secondaryTextSize="2xl"
+              onClick={() => handleAmountSelect(option.primaryAmount)}
+              key={option.id}
+            />
+          ))}
+          <BuiAmountOptionTile
+            custom={true}
+            amountDefined={currentInputAmount !== '0'}
+            primaryAmount={currentInputAmount}
+            onClick={handleCustomSelect}
+            selected={selectedAmount !== null && !tipOptionsState.some(opt => opt.selected)}
+          />
+        </div>
+      )}
+
+      {!isLoadingPrices && (
+        <div className="text-center">
+          <BuiButton
+            style-type="filled"
+            size="large"
+            label="Continue"
+            disabled={!selectedAmount}
+            onClick={handleContinue}
+          />
+        </div>
+      )}
 
       <CustomAmountModal
         isOpen={showCustomModal}
