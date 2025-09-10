@@ -46,7 +46,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const paymentRequest: CreateReceivePaymentRequest = req.body;
+    // Parse req.body defensively - it may be a string on some platforms (e.g. Vercel)
+    let paymentRequest: CreateReceivePaymentRequest;
+    
+    try {
+      if (typeof req.body === 'string') {
+        paymentRequest = JSON.parse(req.body);
+      } else {
+        paymentRequest = req.body as CreateReceivePaymentRequest;
+      }
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      res.status(400).json({ 
+        error: 'Invalid JSON in request body',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parse error'
+      });
+      return;
+    }
+
+    // Validate required fields
+    if (!paymentRequest.id || !paymentRequest.payment_kind || !paymentRequest.wallet_id || 
+        typeof paymentRequest.amount_msats !== 'number' || !paymentRequest.currency) {
+      res.status(400).json({ 
+        error: 'Missing required fields in payment request',
+        details: 'Required fields: id, payment_kind, wallet_id, amount_msats, currency'
+      });
+      return;
+    }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000); // 10s
