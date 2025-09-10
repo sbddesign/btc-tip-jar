@@ -273,7 +273,7 @@ export async function createTipPaymentMethods(
     
     const paymentRequest: CreateReceivePaymentRequest = {
       id: paymentId,
-      payment_kind: 'bolt11', // Creates unified payment supporting both Lightning and onchain
+      payment_kind: 'bolt11', // Creates Lightning-only payment
       wallet_id: voltageConfig.walletId,
       amount_msats: amountMsats, // Amount in millisatoshis
       currency: 'btc',
