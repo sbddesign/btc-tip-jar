@@ -3,11 +3,6 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-interface VoltageAmount {
-  amount: number;
-  currency: 'btc' | 'usd';
-  unit: 'sat' | 'msat' | 'btc' | 'usd';
-}
 
 interface CreateReceivePaymentRequest {
   id: string;
