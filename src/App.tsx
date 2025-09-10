@@ -134,7 +134,11 @@ function CustomAmountModal({
   
   // Calculate satoshis using real-time price
   const amount = parseFloat(currentAmount);
-  const satoshis = btcPrice ? Math.round((amount / btcPrice) * 100_000_000) : 0;
+  let satoshis = 0;
+  
+  if (btcPrice && amount > 0 && !isNaN(amount) && !isNaN(btcPrice)) {
+    satoshis = Math.round((amount / btcPrice) * 100_000_000);
+  }
   
   if (!isOpen) return null;
   
@@ -147,7 +151,7 @@ function CustomAmountModal({
              showMessage={false}
              showEmoji={false}
              primaryAmount={currentAmount}
-             secondaryAmount={isLoadingPrice ? 'Loading...' : satoshis.toLocaleString()}
+             secondaryAmount={isLoadingPrice ? 0 : satoshis}
              showSecondaryCurrency={true}
              secondarySymbol={'₿'}
              showEstimate={true}
