@@ -7,6 +7,7 @@ import {
 } from 'bui/packages/ui/react'
 import 'bui/packages/ui/tokens.css'
 import ReceiveScreen from './components/ReceiveScreen'
+import SuccessScreen from './components/SuccessScreen'
 
 // Type definition for NumPadClickDetail
 interface NumPadClickDetail {
@@ -147,6 +148,7 @@ function App() {
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [currentInputAmount, setCurrentInputAmount] = useState('0')
   const [showReceiveScreen, setShowReceiveScreen] = useState(false)
+  const [showSuccessScreen, setShowSuccessScreen] = useState(false)
 
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount)
@@ -191,6 +193,29 @@ function App() {
     // You could show a toast notification here
   }
 
+  const handlePaymentComplete = () => {
+    setShowReceiveScreen(false)
+    setShowSuccessScreen(true)
+  }
+
+  const handleLeaveAnotherTip = () => {
+    // Reset all state to start over
+    setShowSuccessScreen(false)
+    setShowReceiveScreen(false)
+    setSelectedAmount(null)
+    setCurrentInputAmount('0')
+    setTipOptionsState(tipOptions.map(option => ({ ...option, selected: false })))
+  }
+
+  // Show success screen if payment is completed
+  if (showSuccessScreen) {
+    return (
+      <SuccessScreen 
+        onLeaveAnotherTip={handleLeaveAnotherTip}
+      />
+    );
+  }
+
   // Show receive screen if user has selected amount and clicked continue
   if (showReceiveScreen && selectedAmount) {
     return (
@@ -198,6 +223,7 @@ function App() {
         amount={selectedAmount}
         onGoBack={handleGoBack}
         onCopy={handleCopy}
+        onPaymentComplete={handlePaymentComplete}
       />
     );
   }

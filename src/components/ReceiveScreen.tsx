@@ -13,6 +13,7 @@ interface ReceiveScreenProps {
   amount: number;
   onGoBack: () => void;
   onCopy: () => void;
+  onPaymentComplete: () => void;
 }
 
 interface PaymentData {
@@ -20,7 +21,7 @@ interface PaymentData {
   onchainAddress?: string;
 }
 
-export default function ReceiveScreen({ amount, onGoBack, onCopy }: ReceiveScreenProps) {
+export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentComplete }: ReceiveScreenProps) {
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +53,19 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy }: ReceiveScree
         
         console.log('Setting payment data:', newPaymentData);
         setPaymentData(newPaymentData);
+
+        // Start polling for payment completion in the background
+        console.log('Starting payment completion polling...');
+        result.pollForCompletion()
+          .then((completedPayment) => {
+            console.log('Payment completed!', completedPayment);
+            onPaymentComplete();
+          })
+          .catch((pollError) => {
+            console.error('Payment completion polling failed:', pollError);
+            // Don't show error to user, they might have paid successfully
+            // The polling might fail due to network issues, etc.
+          });
       } catch (err) {
         console.error('Failed to create payment:', err);
         

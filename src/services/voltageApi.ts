@@ -44,7 +44,7 @@ export interface Payment {
   error?: string | null;
   frozen: any[];
   requested_amount: RequestedAmount;
-  status: 'receiving' | 'completed' | 'failed' | 'pending';
+  status: 'receiving' | 'completed' | 'failed' | 'pending' | 'expired';
   type: 'bolt11' | 'onchain' | 'bip21';
   updated_at: string;
 }
@@ -209,6 +209,49 @@ async function pollPaymentStatus(
   throw new VoltageApiError('Payment data not ready after maximum polling attempts');
 }
 
+// Helper function to poll payment status until completed
+async function pollPaymentCompletion(
+  paymentId: string,
+  maxAttempts: number = 300, // 5 minutes at 1 second intervals
+  intervalMs: number = 1000
+): Promise<Payment> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const payment = await voltageApi.getPayment(paymentId);
+      
+      console.log(`Payment status check ${attempt + 1}: ${payment.status}`);
+      
+      // Check if payment is completed
+      if (payment.status === 'completed') {
+        console.log(`Payment completed after ${attempt + 1} attempts!`);
+        return payment;
+      }
+      
+      // If payment failed or expired, throw error
+      if (payment.status === 'failed' || payment.status === 'expired') {
+        throw new VoltageApiError(`Payment ${payment.status}`);
+      }
+      
+      // Wait before next attempt
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    } catch (error) {
+      console.error(`Payment status polling attempt ${attempt + 1} failed:`, error);
+      
+      // If it's the last attempt, throw the error
+      if (attempt === maxAttempts - 1) {
+        throw error;
+      }
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
+  }
+  
+  throw new VoltageApiError('Payment not completed after maximum polling attempts');
+}
+
 // Helper function to create tip payment methods
 export async function createTipPaymentMethods(
   amountUsd: number,
@@ -217,6 +260,7 @@ export async function createTipPaymentMethods(
   lightningInvoice?: string;
   onchainAddress?: string;
   payment: Payment;
+  pollForCompletion: () => Promise<Payment>;
 }> {
   try {
     // Convert USD to satoshis, then to millisatoshis
@@ -248,6 +292,7 @@ export async function createTipPaymentMethods(
       lightningInvoice: payment.data.payment_request,
       onchainAddress: '', // Leave empty for bolt11 payments
       payment,
+      pollForCompletion: () => pollPaymentCompletion(paymentId),
     };
   } catch (error) {
     if (error instanceof VoltageApiError) {
