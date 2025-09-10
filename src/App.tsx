@@ -8,7 +8,7 @@ import {
 import 'bui/packages/ui/tokens.css'
 import ReceiveScreen from './components/ReceiveScreen'
 import SuccessScreen from './components/SuccessScreen'
-import { getCurrentBtcPrice, PriceApiError } from './services/priceApi'
+import { getCurrentBtcPrice, PriceApiError, convertUsdToSats } from './services/priceApi'
 
 // Type definition for NumPadClickDetail
 interface NumPadClickDetail {
@@ -66,6 +66,29 @@ function CustomAmountModal({
   onAmountChange: (amount: string) => void;
 }) {
   const numpadRef = useRef<HTMLElement>(null);
+  const [btcPrice, setBtcPrice] = useState<number | null>(null);
+  const [isLoadingPrice, setIsLoadingPrice] = useState(false);
+  
+  // Load Bitcoin price when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadBtcPrice();
+    }
+  }, [isOpen]);
+
+  const loadBtcPrice = async () => {
+    try {
+      setIsLoadingPrice(true);
+      const price = await getCurrentBtcPrice();
+      setBtcPrice(price);
+    } catch (error) {
+      console.error('Failed to load BTC price for modal:', error);
+      // Use fallback price
+      setBtcPrice(97250);
+    } finally {
+      setIsLoadingPrice(false);
+    }
+  };
   
   // Event listener for numpad-click events
   useEffect(() => {
@@ -109,6 +132,10 @@ function CustomAmountModal({
   
   const isAmountValid = parseFloat(currentAmount) > 0;
   
+  // Calculate satoshis using real-time price
+  const amount = parseFloat(currentAmount);
+  const satoshis = btcPrice ? Math.round((amount / btcPrice) * 100_000_000) : 0;
+  
   if (!isOpen) return null;
   
   return (
@@ -120,7 +147,12 @@ function CustomAmountModal({
              showMessage={false}
              showEmoji={false}
              primaryAmount={currentAmount}
-             secondaryAmount={(parseFloat(currentAmount) * 0.000025).toFixed(6)}
+             secondaryAmount={isLoadingPrice ? 'Loading...' : satoshis.toLocaleString()}
+             showSecondaryCurrency={true}
+             secondarySymbol={'₿'}
+             showEstimate={true}
+             primaryTextSize="6xl"
+             secondaryTextSize="2xl"
            />
         </div>
                  <div className="lg:basis-2/5 lg:w-2/5 text-center flex flex-col items-center gap-6">
@@ -159,6 +191,7 @@ function App() {
   const [showSuccessScreen, setShowSuccessScreen] = useState(false)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
   const [priceError, setPriceError] = useState<string | null>(null)
+  const [customAmountSats, setCustomAmountSats] = useState<number>(0)
 
   // Load Bitcoin price and calculate secondary amounts on component mount
   useEffect(() => {
@@ -208,6 +241,31 @@ function App() {
 
     loadPricesAndCalculateAmounts()
   }, [])
+
+  // Calculate custom amount satoshis when currentInputAmount changes
+  useEffect(() => {
+    const calculateCustomSats = async () => {
+      if (currentInputAmount === '0' || !currentInputAmount) {
+        setCustomAmountSats(0);
+        return;
+      }
+
+      try {
+        const amount = parseFloat(currentInputAmount);
+        if (amount > 0) {
+          const sats = await convertUsdToSats(amount);
+          setCustomAmountSats(sats);
+        }
+      } catch (error) {
+        console.error('Failed to calculate custom amount sats:', error);
+        // Use fallback calculation
+        const amount = parseFloat(currentInputAmount);
+        setCustomAmountSats(Math.round(amount * 1500)); // Rough fallback
+      }
+    };
+
+    calculateCustomSats();
+  }, [currentInputAmount]);
 
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount)
@@ -340,6 +398,12 @@ function App() {
             custom={true}
             amountDefined={currentInputAmount !== '0'}
             primaryAmount={currentInputAmount}
+            secondaryAmount={customAmountSats}
+            showSecondaryCurrency={true}
+            secondarySymbol={'₿'}
+            showEstimate={true}
+            primaryTextSize="6xl"
+            secondaryTextSize="2xl"
             onClick={handleCustomSelect}
             selected={selectedAmount !== null && !tipOptionsState.some(opt => opt.selected)}
           />
