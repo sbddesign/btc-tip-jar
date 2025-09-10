@@ -48,6 +48,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const paymentRequest: CreateReceivePaymentRequest = req.body;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000); // 10s
     const response = await fetch(
       `https://voltageapi.com/v1/organizations/${VOLTAGE_ORG_ID}/environments/${VOLTAGE_ENV_ID}/payments`,
       {
@@ -55,10 +57,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': VOLTAGE_API_KEY,
+          'Idempotency-Key': paymentRequest.id
         },
         body: JSON.stringify(paymentRequest),
+        signal: controller.signal
       }
     );
+    clearTimeout(timeout);
 
     if (!response.ok) {
       const errorText = await response.text();
