@@ -166,7 +166,6 @@ export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy 
       <div className="w-[392px]">
         <BuiBitcoinQrDisplay
           key={paymentData?.lightningInvoice || 'loading'} // Force re-render when invoice changes
-          address={paymentData?.onchainAddress || ''}
           lightning={paymentData?.lightningInvoice || ''}
           option="lightning"
           selector="toggle"
