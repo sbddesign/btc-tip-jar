@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { 
   BuiBitcoinQrDisplayReact as BuiBitcoinQrDisplay,
   BuiButtonReact as BuiButton,
-} from 'bui/packages/ui/react';
+} from '@sbddesign/bui-ui/react';
 import { 
   createTipPaymentMethods,
   VoltageApiError
 } from '../services/voltageApi';
 import { isVoltageConfigured } from '../config/voltage';
+import { Recipient } from './Recipient';
 
 interface ReceiveScreenProps {
   amount: number;
@@ -118,16 +119,8 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
     <div className="bg-[var(--background)] min-h-screen flex flex-col items-center justify-start p-12 gap-12">
       {/* Header Section */}
       <div className="flex flex-col items-center gap-2">
-        {/* Profile Image */}
-        <div className="w-16 h-16 rounded-full overflow-hidden bg-[#9f9fa9] border border-[var(--system-divider)] flex items-center justify-center">
-          <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 rounded-full"></div>
-        </div>
-        
-        {/* Name */}
-        <p className="text-[var(--text-secondary)] text-2xl font-normal">Max Eve Music & Art</p>
-        
-        {/* Title */} 
-        <h1 className="text-4xl font-normal text-center">Send Max a tip for a great show</h1>
+        <Recipient size="Small" />
+        <h1 className="text-4xl font-normal text-center">{import.meta.env.VITE_TIP_JAR_SLOGAN || "Send us a tip"}</h1>
       </div>
 
       {/* Bitcoin QR Display */}
