@@ -131,9 +131,9 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
           lightning={paymentData?.lightningInvoice || ''}
           option="lightning"
           selector="toggle"
-          size={332}
+          size={264}
           showImage={true}
-          dotType="dots"
+          dotType="dot"
           dotColor="#000000"
           copyOnTap={true}
           placeholder={isLoading}
