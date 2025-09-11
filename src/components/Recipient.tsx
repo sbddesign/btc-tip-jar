@@ -4,11 +4,12 @@ import image from '../assets/avatars/Robot.png';
 import image2X from '../assets/avatars/Robot@2x.png';
 
 interface RecipientProps {
-  name?: string;
   size?: 'Large' | 'Small';
 }
 
-function Recipient({ name = "Recipient Name", size = "Large" }: RecipientProps) {
+function Recipient({ size = "Large" }: RecipientProps) {
+  // Get the name from environment variable
+  const name = import.meta.env.VITE_TIP_JAR_NAME || "Recipient Name";
   const nameElement = (
     <div className="relative shrink-0 text-[#71717b] text-2xl text-center">
       <p className="whitespace-nowrap">{name}</p>
@@ -23,7 +24,8 @@ function Recipient({ name = "Recipient Name", size = "Large" }: RecipientProps) 
       <div className="flex flex-col gap-4 items-center justify-start relative w-full" data-name="Size=Small">
         <div className="w-16 h-16" data-name="Avatar" data-node-id="6903:5809">
           <BuiAvatar 
-            imageUrl={img}
+            imageUrl={image}
+            imageUrl2x={image2X}
             size={avatarSize}
           />
         </div>

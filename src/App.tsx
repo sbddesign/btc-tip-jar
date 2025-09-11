@@ -353,8 +353,8 @@ function App() {
   return (
     <div className="text-center flex flex-col gap-8 lg:gap-12 p-6 lg:p-12">
       <header className="flex flex-col gap-4 lg:gap-6">
-        <Recipient name="Max Eve Music & Art" size="Large" />
-        <p className="text-3xl lg:text-5xl">Send Max a tip for a great show</p>
+        <Recipient size="Large" />
+        <p className="text-3xl lg:text-5xl">{import.meta.env.VITE_TIP_JAR_SLOGAN || "Send us a tip"}</p>
       </header>
 
       {/* Loading state */}

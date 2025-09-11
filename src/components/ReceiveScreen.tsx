@@ -119,8 +119,8 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
     <div className="bg-[var(--background)] min-h-screen flex flex-col items-center justify-start p-12 gap-12">
       {/* Header Section */}
       <div className="flex flex-col items-center gap-2">
-        <Recipient name="Max Eve Music & Art" size="Small" />
-        <h1 className="text-4xl font-normal text-center">Send Max a tip for a great show</h1>
+        <Recipient size="Small" />
+        <h1 className="text-4xl font-normal text-center">{import.meta.env.VITE_TIP_JAR_SLOGAN || "Send us a tip"}</h1>
       </div>
 
       {/* Bitcoin QR Display */}

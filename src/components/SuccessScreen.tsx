@@ -11,7 +11,7 @@ export default function SuccessScreen({ onLeaveAnotherTip }: SuccessScreenProps)
 
       {/* Main Content */}
       <div className="flex flex-col items-center gap-6 z-10">
-        <Recipient name="Max Eve Music & Art" size="Large" />
+        <Recipient size="Large" />
         <h1 className="text-4xl font-normal text-center">Thank you for your support!</h1>
 
         {/* Leave Another Tip Button */}
