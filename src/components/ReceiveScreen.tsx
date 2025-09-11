@@ -11,7 +11,6 @@ import {
 } from '../services/voltageApi';
 import { isVoltageConfigured } from '../config/voltage';
 import { Recipient } from './Recipient';
-import { convertUsdToSats } from '../services/priceApi';
 // Import icons as React components
 const CopyIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 5H6C4.89543 5 4 5.89543 4 7V19C4 20.1046 4.89543 21 6 21H16C17.1046 21 18 20.1046 18 19V7C18 5.89543 17.1046 5 16 5H14M8 5C8 6.10457 8.89543 7 10 7H14C15.1046 7 16 6.10457 16 5M8 5C8 3.89543 8.89543 3 10 3H14C15.1046 3 16 3.89543 16 5M12 12H16M12 16H16M8 12H8.01M8 16H8.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 
@@ -21,9 +20,9 @@ const CheckCircleIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fi
 
 interface ReceiveScreenProps {
   amount: number;
+  bitcoinAmount: number;
   onGoBack: () => void;
   onCopy: () => void;
-  onPaymentComplete: () => void;
 }
 
 interface PaymentData {
@@ -31,13 +30,12 @@ interface PaymentData {
   onchainAddress?: string;
 }
 
-export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentComplete }: ReceiveScreenProps) {
+export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy }: ReceiveScreenProps) {
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isPaymentComplete, setIsPaymentComplete] = useState(false);
-  const [bitcoinAmount, setBitcoinAmount] = useState<number>(0);
 
   useEffect(() => {
     const createPayment = async () => {
@@ -50,10 +48,6 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
       try {
         setIsLoading(true);
         setError(null);
-        
-        // Calculate Bitcoin amount for display
-        const btcAmount = await convertUsdToSats(amount);
-        setBitcoinAmount(btcAmount);
         
         const result = await createTipPaymentMethods(
           amount,
@@ -152,23 +146,21 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
       </div>
 
       {/* Amount Display */}
-      {!isLoading && !error && paymentData && (
-        <div className="flex items-center gap-8">
-          <BuiMoneyValue
-            amount={amount}
-            symbol="$"
-            showEstimate={true}
-            textSize="3xl"
-          />
-          <span className="text-[var(--text-secondary)]">
+      <div className="flex items-center gap-8">
+        <BuiMoneyValue
+          amount={amount}
+          symbol="$"
+          showEstimate={true}
+          textSize="3xl"
+        />
+        <span className="text-[var(--text-secondary)]">
           <BuiBitcoinValue
             amount={bitcoinAmount}
             showEstimate={false}
             textSize="3xl"
           />
-          </span>
-        </div>
-      )}
+        </span>
+      </div>
 
       {/* Bitcoin QR Display */}
       <div className="w-[392px]">

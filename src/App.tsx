@@ -192,7 +192,6 @@ function App() {
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [currentInputAmount, setCurrentInputAmount] = useState('0')
   const [showReceiveScreen, setShowReceiveScreen] = useState(false)
-  const [showSuccessScreen, setShowSuccessScreen] = useState(false)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
   const [priceError, setPriceError] = useState<string | null>(null)
   const [customAmountSats, setCustomAmountSats] = useState<number>(0)
@@ -314,37 +313,18 @@ function App() {
     // You could show a toast notification here
   }
 
-  const handlePaymentComplete = () => {
-    setShowReceiveScreen(false)
-    setShowSuccessScreen(true)
-  }
-
-  const handleLeaveAnotherTip = () => {
-    // Reset all state to start over
-    setShowSuccessScreen(false)
-    setShowReceiveScreen(false)
-    setSelectedAmount(null)
-    setCurrentInputAmount('0')
-    setTipOptionsState(prev => prev.map(option => ({ ...option, selected: false })))
-  }
-
-  // Show success screen if payment is completed
-  if (showSuccessScreen) {
-    return (
-      <SuccessScreen 
-        onLeaveAnotherTip={handleLeaveAnotherTip}
-      />
-    );
-  }
-
   // Show receive screen if user has selected amount and clicked continue
   if (showReceiveScreen && selectedAmount) {
+    // Calculate bitcoin amount for the selected amount
+    const selectedOption = tipOptionsState.find(option => option.primaryAmount === selectedAmount);
+    const bitcoinAmount = selectedOption?.secondaryAmount || 0;
+    
     return (
       <ReceiveScreen 
         amount={selectedAmount}
+        bitcoinAmount={bitcoinAmount}
         onGoBack={handleGoBack}
         onCopy={handleCopy}
-        onPaymentComplete={handlePaymentComplete}
       />
     );
   }
