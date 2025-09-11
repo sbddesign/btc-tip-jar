@@ -7,7 +7,6 @@ import {
 } from '@sbddesign/bui-ui/react'
 import '@sbddesign/bui-ui/tokens.css'
 import ReceiveScreen from './components/ReceiveScreen'
-import SuccessScreen from './components/SuccessScreen'
 import { getCurrentBtcPrice, PriceApiError, convertUsdToSats } from './services/priceApi'
 import { Recipient } from './components/Recipient'
 
