@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "api/voltage-payments.ts": {
+      "runtime": "vercel/node@22.x"
+    }
+  },
+  "env": {
+    "VOLTAGE_API_KEY": "@voltage-api-key",
+    "VOLTAGE_ORG_ID": "@voltage-org-id",
+    "VOLTAGE_ENV_ID": "@voltage-env-id"
+  }
+}
