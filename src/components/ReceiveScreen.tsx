@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { 
   BuiBitcoinQrDisplayReact as BuiBitcoinQrDisplay,
   BuiButtonReact as BuiButton,
+  BuiMoneyValueReact as BuiMoneyValue,
+  BuiBitcoinValueReact as BuiBitcoinValue,
 } from '@sbddesign/bui-ui/react';
 import { 
   createTipPaymentMethods,
@@ -9,6 +11,13 @@ import {
 } from '../services/voltageApi';
 import { isVoltageConfigured } from '../config/voltage';
 import { Recipient } from './Recipient';
+import { convertUsdToSats } from '../services/priceApi';
+// Import icons as React components
+const CopyIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 5H6C4.89543 5 4 5.89543 4 7V19C4 20.1046 4.89543 21 6 21H16C17.1046 21 18 20.1046 18 19V7C18 5.89543 17.1046 5 16 5H14M8 5C8 6.10457 8.89543 7 10 7H14C15.1046 7 16 6.10457 16 5M8 5C8 3.89543 8.89543 3 10 3H14C15.1046 3 16 3.89543 16 5M12 12H16M12 16H16M8 12H8.01M8 16H8.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+
+const ArrowLeftIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+
+const CheckCircleIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.7088 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.85999" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M22 4L12 14.01L9 11.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 
 interface ReceiveScreenProps {
   amount: number;
@@ -26,6 +35,9 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isPaymentComplete, setIsPaymentComplete] = useState(false);
+  const [bitcoinAmount, setBitcoinAmount] = useState<number>(0);
 
   useEffect(() => {
     const createPayment = async () => {
@@ -39,9 +51,13 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
         setIsLoading(true);
         setError(null);
         
+        // Calculate Bitcoin amount for display
+        const btcAmount = await convertUsdToSats(amount);
+        setBitcoinAmount(btcAmount);
+        
         const result = await createTipPaymentMethods(
           amount,
-          `Bitcoin tip for $${amount} - Max Eve Music & Art`
+          `Bitcoin tip for $${amount} - ${import.meta.env.VITE_TIP_JAR_NAME || "Recipient"}`
         );
 
         console.log('Payment result:', result);
@@ -60,7 +76,8 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
         result.pollForCompletion()
           .then((completedPayment) => {
             console.log('Payment completed!', completedPayment);
-            onPaymentComplete();
+            setIsPaymentComplete(true);
+            // Don't call onPaymentComplete() - we'll handle it in the UI
           })
           .catch((pollError) => {
             console.error('Payment completion polling failed:', pollError);
@@ -103,11 +120,22 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
 
       if (textToCopy) {
         await navigator.clipboard.writeText(textToCopy);
+        setIsCopied(true);
         onCopy();
+        
+        // Reset copied state after 2 seconds
+        setTimeout(() => {
+          setIsCopied(false);
+        }, 2000);
       }
     } catch (error) {
       console.error('Failed to copy:', error);
     }
+  };
+
+  const handleLeaveAnotherTip = () => {
+    // Go back to landing screen by calling onGoBack
+    onGoBack();
   };
 
   // Debug logging
@@ -122,6 +150,23 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
         <Recipient size="Small" />
         <h1 className="text-4xl font-normal text-center">{import.meta.env.VITE_TIP_JAR_SLOGAN || "Send us a tip"}</h1>
       </div>
+
+      {/* Amount Display */}
+      {!isLoading && !error && paymentData && (
+        <div className="flex flex-col items-center gap-2">
+          <BuiMoneyValue
+            amount={amount}
+            symbol="$"
+            showEstimate={true}
+            textSize="2xl"
+          />
+          <BuiBitcoinValue
+            amount={bitcoinAmount}
+            showEstimate={false}
+            textSize="lg"
+          />
+        </div>
+      )}
 
       {/* Bitcoin QR Display */}
       <div className="w-[392px]">
@@ -139,26 +184,45 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
           placeholder={isLoading}
           error={!!error}
           errorMessage={error || undefined}
+          complete={isPaymentComplete}
         />
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="w-full max-w-[392px] flex gap-4">
-        <BuiButton
-          label="Go Back"
-          styleType="outline"
-          size="large"
-          wide={true}
-          onClick={onGoBack}
-        />
-        <BuiButton
-          label={isLoading ? "Loading..." : "Copy"}
-          styleType="filled"
-          size="large"
-          wide={true}
-          disabled={isLoading || !!error || !paymentData}
-          onClick={handleCopy}
-        />
+      {/* Bottom Navigation - Vertical Layout */}
+      <div className="w-[314px] flex flex-col gap-4">
+        {isPaymentComplete ? (
+          <BuiButton
+            label="Leave Another Tip"
+            styleType="filled"
+            size="large"
+            wide={true}
+            onClick={handleLeaveAnotherTip}
+          >
+            <CheckCircleIcon />
+          </BuiButton>
+        ) : (
+          <>
+            <BuiButton
+              label={isCopied ? "Copied!" : (isLoading ? "Loading..." : "Copy")}
+              styleType="filled"
+              size="large"
+              wide={true}
+              disabled={isLoading || !!error || !paymentData}
+              onClick={handleCopy}
+            >
+              {isCopied ? <CheckCircleIcon /> : <CopyIcon />}
+            </BuiButton>
+            <BuiButton
+              label="Go Back"
+              styleType="outline"
+              size="large"
+              wide={true}
+              onClick={onGoBack}
+            >
+              <ArrowLeftIcon />
+            </BuiButton>
+          </>
+        )}
       </div>
     </div>
   );
