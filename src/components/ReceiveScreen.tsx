@@ -153,18 +153,20 @@ export default function ReceiveScreen({ amount, onGoBack, onCopy, onPaymentCompl
 
       {/* Amount Display */}
       {!isLoading && !error && paymentData && (
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex items-center gap-8">
           <BuiMoneyValue
             amount={amount}
             symbol="$"
             showEstimate={true}
-            textSize="2xl"
+            textSize="3xl"
           />
+          <span className="text-[var(--text-secondary)]">
           <BuiBitcoinValue
             amount={bitcoinAmount}
             showEstimate={false}
-            textSize="lg"
+            textSize="3xl"
           />
+          </span>
         </div>
       )}
 
