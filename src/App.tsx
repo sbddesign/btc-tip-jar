@@ -4,11 +4,12 @@ import {
   BuiAmountOptionTileReact as BuiAmountOptionTile,
   BuiButtonReact as BuiButton,
   BuiNumpadReact as BuiNumpad
-} from 'bui/packages/ui/react'
-import 'bui/packages/ui/tokens.css'
+} from '@sbddesign/bui-ui/react'
+import '@sbddesign/bui-ui/tokens.css'
 import ReceiveScreen from './components/ReceiveScreen'
 import SuccessScreen from './components/SuccessScreen'
 import { getCurrentBtcPrice, PriceApiError, convertUsdToSats } from './services/priceApi'
+import { Recipient } from './components/Recipient'
 
 // Type definition for NumPadClickDetail
 interface NumPadClickDetail {
@@ -352,11 +353,8 @@ function App() {
   return (
     <div className="text-center flex flex-col gap-8 lg:gap-12 p-6 lg:p-12">
       <header className="flex flex-col gap-4 lg:gap-6">
-          <div className="w-24 h-24 lg:w-40 lg:h-40 rounded-full overflow-hidden mx-auto">
-            <div className="bg-linear-to-br from-purple-500 to-pink-500 w-full h-full"></div>
-          </div>
-          <h1 className="text-2xl text-[var(--text-secondary)]">Max Eve Music & Art</h1>
-          <p className="text-3xl lg:text-5xl">Send Max a tip for a great show</p>
+        <Recipient name="Max Eve Music & Art" size="Large" />
+        <p className="text-3xl lg:text-5xl">Send Max a tip for a great show</p>
       </header>
 
       {/* Loading state */}
