@@ -284,10 +284,22 @@ function App() {
     setShowCustomModal(true)
   }
 
-  const handleCustomConfirm = (amount: number) => {
+  const handleCustomConfirm = async (amount: number) => {
     setSelectedAmount(amount)
     setCurrentInputAmount(amount.toString())
     setShowCustomModal(false)
+    
+    // Calculate Bitcoin amount for custom amount
+    try {
+      const btcAmount = await convertUsdToSats(amount)
+      setCustomAmountSats(btcAmount)
+    } catch (error) {
+      console.error('Failed to calculate Bitcoin amount for custom amount:', error)
+      // Use fallback calculation
+      const fallbackBtcAmount = Math.round(amount * 1500) // Rough fallback: $1 ≈ 1500 sats
+      setCustomAmountSats(fallbackBtcAmount)
+    }
+    
     // Update the custom tile to show the selected amount
     setTipOptionsState(prev => 
       prev.map(option => ({
@@ -317,7 +329,7 @@ function App() {
   if (showReceiveScreen && selectedAmount) {
     // Calculate bitcoin amount for the selected amount
     const selectedOption = tipOptionsState.find(option => option.primaryAmount === selectedAmount);
-    const bitcoinAmount = selectedOption?.secondaryAmount || 0;
+    const bitcoinAmount = selectedOption?.secondaryAmount || customAmountSats;
     
     return (
       <ReceiveScreen 
