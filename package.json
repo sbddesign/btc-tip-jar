@@ -10,9 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@sbddesign/bui-ui": "^0.0.2",
+    "@sbddesign/bui-ui": "link:../bui",
+    "@sbddesign/bui-icons": "link:../bui",
     "@tailwindcss/vite": "^4.1.12",
-    "bui": "link:../bui",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.12",
