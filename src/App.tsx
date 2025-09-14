@@ -7,7 +7,6 @@ import {
 } from '@sbddesign/bui-ui/react'
 import '@sbddesign/bui-ui/tokens.css'
 import ReceiveScreen from './components/ReceiveScreen'
-import SuccessScreen from './components/SuccessScreen'
 import { getCurrentBtcPrice, PriceApiError, convertUsdToSats } from './services/priceApi'
 import { Recipient } from './components/Recipient'
 
@@ -193,7 +192,6 @@ function App() {
   const [showCustomModal, setShowCustomModal] = useState(false)
   const [currentInputAmount, setCurrentInputAmount] = useState('0')
   const [showReceiveScreen, setShowReceiveScreen] = useState(false)
-  const [showSuccessScreen, setShowSuccessScreen] = useState(false)
   const [isLoadingPrices, setIsLoadingPrices] = useState(true)
   const [priceError, setPriceError] = useState<string | null>(null)
   const [customAmountSats, setCustomAmountSats] = useState<number>(0)
@@ -286,10 +284,22 @@ function App() {
     setShowCustomModal(true)
   }
 
-  const handleCustomConfirm = (amount: number) => {
+  const handleCustomConfirm = async (amount: number) => {
     setSelectedAmount(amount)
     setCurrentInputAmount(amount.toString())
     setShowCustomModal(false)
+    
+    // Calculate Bitcoin amount for custom amount
+    try {
+      const btcAmount = await convertUsdToSats(amount)
+      setCustomAmountSats(btcAmount)
+    } catch (error) {
+      console.error('Failed to calculate Bitcoin amount for custom amount:', error)
+      // Use fallback calculation
+      const fallbackBtcAmount = Math.round(amount * 1500) // Rough fallback: $1 ≈ 1500 sats
+      setCustomAmountSats(fallbackBtcAmount)
+    }
+    
     // Update the custom tile to show the selected amount
     setTipOptionsState(prev => 
       prev.map(option => ({
@@ -315,37 +325,18 @@ function App() {
     // You could show a toast notification here
   }
 
-  const handlePaymentComplete = () => {
-    setShowReceiveScreen(false)
-    setShowSuccessScreen(true)
-  }
-
-  const handleLeaveAnotherTip = () => {
-    // Reset all state to start over
-    setShowSuccessScreen(false)
-    setShowReceiveScreen(false)
-    setSelectedAmount(null)
-    setCurrentInputAmount('0')
-    setTipOptionsState(prev => prev.map(option => ({ ...option, selected: false })))
-  }
-
-  // Show success screen if payment is completed
-  if (showSuccessScreen) {
-    return (
-      <SuccessScreen 
-        onLeaveAnotherTip={handleLeaveAnotherTip}
-      />
-    );
-  }
-
   // Show receive screen if user has selected amount and clicked continue
   if (showReceiveScreen && selectedAmount) {
+    // Calculate bitcoin amount for the selected amount
+    const selectedOption = tipOptionsState.find(option => option.primaryAmount === selectedAmount);
+    const bitcoinAmount = selectedOption?.secondaryAmount || customAmountSats;
+    
     return (
       <ReceiveScreen 
         amount={selectedAmount}
+        bitcoinAmount={bitcoinAmount}
         onGoBack={handleGoBack}
         onCopy={handleCopy}
-        onPaymentComplete={handlePaymentComplete}
       />
     );
   }
