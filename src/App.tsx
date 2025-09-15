@@ -409,7 +409,7 @@ function App() {
             styleType="filled"
             size="large"
             label="Continue"
-            disabled={!selectedAmount ? "true" : "false"}
+            disabled={!selectedAmount ? "true" : ""}
             onClick={handleContinue}
           />
         </div>
