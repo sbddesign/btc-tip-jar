@@ -148,15 +148,15 @@ export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy 
       {/* Amount Display */}
       <div className="flex items-center gap-8">
         <BuiMoneyValue
-          amount={amount}
+          amount={amount.toString()}
           symbol="$"
-          showEstimate={true}
+          showEstimate="true"
           textSize="3xl"
         />
         <span className="text-[var(--text-secondary)]">
           <BuiBitcoinValue
-            amount={bitcoinAmount}
-            showEstimate={false}
+            amount={bitcoinAmount.toString()}
+            showEstimate="false"
             textSize="3xl"
           />
         </span>
@@ -169,15 +169,15 @@ export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy 
           lightning={paymentData?.lightningInvoice || ''}
           option="lightning"
           selector="toggle"
-          size={264}
-          showImage={true}
+          size="264"
+          showImage="true"
           dotType="dot"
           dotColor="#000000"
-          copyOnTap={true}
-          placeholder={isLoading}
-          error={!!error}
+          copyOnTap="true"
+          placeholder={isLoading ? "true" : "false"}
+          error={error ? "true" : "false"}
           errorMessage={error || undefined}
-          complete={isPaymentComplete}
+          complete={isPaymentComplete ? "true" : "false"}
         />
       </div>
 
@@ -188,7 +188,7 @@ export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy 
             label="Leave Another Tip"
             styleType="filled"
             size="large"
-            wide={true}
+            wide="true"
             onClick={handleLeaveAnotherTip}
           >
             <CheckCircleIcon />
@@ -199,8 +199,8 @@ export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy 
               label={isCopied ? "Copied!" : (isLoading ? "Loading..." : "Copy")}
               styleType="filled"
               size="large"
-              wide={true}
-              disabled={isLoading || !!error || !paymentData}
+              wide="true"
+              disabled={isLoading || !!error || !paymentData ? "true" : "false"}
               onClick={handleCopy}
             >
               {isCopied ? <CheckCircleIcon /> : <CopyIcon />}
@@ -209,7 +209,7 @@ export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy 
               label="Go Back"
               styleType="outline"
               size="large"
-              wide={true}
+              wide="true"
               onClick={onGoBack}
             >
               <ArrowLeftIcon />

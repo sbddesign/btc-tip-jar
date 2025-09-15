@@ -150,7 +150,7 @@ function CustomAmountModal({
                      <BuiAmountOptionTile
              showMessage={false}
              showEmoji={false}
-             primaryAmount={currentAmount}
+             primaryAmount={parseFloat(currentAmount) || 0}
              secondaryAmount={isLoadingPrice ? 0 : satoshis}
              showSecondaryCurrency={true}
              secondarySymbol={'₿'}
@@ -168,14 +168,14 @@ function CustomAmountModal({
             <BuiButton
               label="Go Back"
               styleType="outline"
-              wide={true}
+              wide="true"
               onClick={onClose}
             >
             </BuiButton>
                          <BuiButton
                label="Continue"
-               wide={true}
-               disabled={!isAmountValid}
+               wide="true"
+               disabled={!isAmountValid ? "true" : "false"}
                onClick={handleConfirm}
              >
             </BuiButton>
@@ -390,7 +390,7 @@ function App() {
           <BuiAmountOptionTile
             custom={true}
             amountDefined={currentInputAmount !== '0'}
-            primaryAmount={currentInputAmount}
+            primaryAmount={parseFloat(currentInputAmount) || 0}
             secondaryAmount={customAmountSats}
             showSecondaryCurrency={true}
             secondarySymbol={'₿'}
@@ -406,10 +406,10 @@ function App() {
       {!isLoadingPrices && (
         <div className="text-center">
           <BuiButton
-            style-type="filled"
+            styleType="filled"
             size="large"
             label="Continue"
-            disabled={!selectedAmount}
+            disabled={!selectedAmount ? "true" : "false"}
             onClick={handleContinue}
           />
         </div>
