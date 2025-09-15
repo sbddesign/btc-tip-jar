@@ -9,13 +9,13 @@ importers:
   .:
     dependencies:
       '@sbddesign/bui-icons':
-        specifier: ^0.0.4
+        specifier: 0.0.4
         version: 0.0.4
       '@sbddesign/bui-tokens':
         specifier: ^0.0.4
         version: 0.0.4
       '@sbddesign/bui-ui':
-        specifier: ^0.0.5
+        specifier: 0.0.5
         version: 0.0.5(@liquid-js/qrcode-generator@1.1.1)(@types/react@19.1.12)(@xmldom/xmldom@0.9.8)(file-type@19.6.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(sharp@0.34.3)
       '@tailwindcss/vite':
         specifier: ^4.1.12
