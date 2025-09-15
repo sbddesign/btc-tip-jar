@@ -26,26 +26,74 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     };
   }
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
-  }
-
   try {
-    const { 
-      VOLTAGE_API_KEY, 
-      VOLTAGE_ORG_ID, 
-      VOLTAGE_ENV_ID 
-    } = process.env;
+    const VOLTAGE_API_KEY = process.env.VOLTAGE_API_KEY || process.env.VITE_VOLTAGE_API_KEY;
+    const VOLTAGE_ORG_ID = process.env.VOLTAGE_ORG_ID || process.env.VITE_VOLTAGE_ORG_ID;
+    const VOLTAGE_ENV_ID = process.env.VOLTAGE_ENV_ID || process.env.VITE_VOLTAGE_ENV_ID;
+    const VOLTAGE_WALLET_ID = process.env.VOLTAGE_WALLET_ID || process.env.VITE_VOLTAGE_WALLET_ID;
 
     if (!VOLTAGE_API_KEY || !VOLTAGE_ORG_ID || !VOLTAGE_ENV_ID) {
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({ error: 'Voltage API configuration missing' }),
+      };
+    }
+
+    // Handle GET to fetch payment by ID
+    if (event.httpMethod === 'GET') {
+      const url = new URL(event.rawUrl);
+      const paymentId = url.searchParams.get('id') || url.searchParams.get('paymentId') || undefined;
+
+      if (!paymentId) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Missing payment id' }),
+        };
+      }
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000); // 10s
+      const response = await fetch(
+        `https://voltageapi.com/v1/organizations/${VOLTAGE_ORG_ID}/environments/${VOLTAGE_ENV_ID}/payments/${paymentId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': VOLTAGE_API_KEY,
+          },
+          signal: controller.signal
+        }
+      );
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Voltage API Error (GET payment):', { status: response.status, errorText });
+        return {
+          statusCode: response.status,
+          headers,
+          body: JSON.stringify({ 
+            error: `Voltage API Error: ${response.status}`,
+            details: errorText 
+          }),
+        };
+      }
+
+      const payment = await response.json();
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(payment),
+      };
+    }
+
+    if (event.httpMethod !== 'POST') {
+      return {
+        statusCode: 405,
+        headers,
+        body: JSON.stringify({ error: 'Method not allowed' }),
       };
     }
 
@@ -66,9 +114,15 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       };
     }
 
+    // Override wallet id with server configuration when available
+    if (VOLTAGE_WALLET_ID) {
+      paymentRequest.wallet_id = VOLTAGE_WALLET_ID;
+    }
+
     // Validate required fields
-    if (!paymentRequest.id || !paymentRequest.payment_kind || !paymentRequest.wallet_id || 
-        typeof paymentRequest.amount_msats !== 'number' || !paymentRequest.currency) {
+    if (!paymentRequest.id || !paymentRequest.payment_kind ||
+        typeof paymentRequest.amount_msats !== 'number' || !paymentRequest.currency ||
+        !paymentRequest.wallet_id) {
       return {
         statusCode: 400,
         headers,

@@ -162,8 +162,30 @@ class VoltageApi {
   }
 
   async getPayment(paymentId: string): Promise<Payment> {
+    // In production, call serverless function to keep secrets server-side
+    if (!import.meta.env.DEV) {
+      const response = await fetch(`/api/voltage-payments?id=${encodeURIComponent(paymentId)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new VoltageApiError(
+          `HTTP ${response.status}: ${response.statusText}`,
+          response.status,
+          errorText
+        );
+      }
+
+      const payment = await response.json();
+      return payment as Payment;
+    }
+
+    // Development: use proxy
     const endpoint = `/organizations/${this.orgId}/environments/${this.envId}/payments/${paymentId}`;
-    
     return this.makeRequest<Payment>(endpoint, {
       method: 'GET',
     });
