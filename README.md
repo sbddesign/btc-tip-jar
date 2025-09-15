@@ -1,8 +1,31 @@
-# BTC Tip Jar
+# Bitcoin Tip Jar
 
-Production-ready configuration for using Voltage API via a Vite React app deployed on Netlify.
+![Tip Jar](btc-tip-jar.png)
 
-## Environment variables
+A tip jar built with the Bitcoin Builder Kit and [Voltage API](https://docs.voltageapi.com/).
+
+## How It Works
+
+This web app allows a user to accept tips in bitcoin. It offers some simple, predefined amount options, as well as a custom entry for the tipper to define a custom tipping amount. From there, it fetches a BOLT11 lightning invoice from the Voltage Payments API for the tipper to pay.
+
+## Development Notes
+
+### Bitcoin Builder Kit
+
+This app uses the Bitcoin Builder Kit for it's UI system.
+
+- [UI Package](https://www.npmjs.com/package/@sbddesign/bui-ui)
+- [Tokens Package](https://www.npmjs.com/package/@sbddesign/bui-tokens)
+- [Icons Package](https://www.npmjs.com/package/@sbddesign/bui-icons)
+
+### Voltage
+
+This app uses the Votlage Payments API to receive the bitcoin tips. Learn more about the Voltage Payments API here:
+
+- [Voltage Payments API Docs](https://docs.voltageapi.com/)
+- [Voltage Payments Scalar Docs](https://voltageapi.com/v1/docs)
+
+### Environment variables
 
 There are two environments in play:
 
@@ -26,12 +49,12 @@ Recommended setups:
 - Development (`.env.local`): set only `VITE_*` variables.
 - Netlify (Production): set either `VOLTAGE_*` or `VITE_VOLTAGE_*`. The function accepts both.
 
-## How requests flow
+### How requests flow
 
 - Development: frontend calls `'/api/voltage'` (Vite proxy) with `VITE_*` credentials.
 - Production: frontend calls Netlify Function `'/api/voltage-payments'` for both POST (create) and GET (fetch by id). The function injects credentials from environment variables and never exposes them to the client.
 
-## Netlify configuration
+### Netlify configuration
 
 `netlify.toml` contains a redirect:
 
@@ -44,7 +67,7 @@ status = 200
 
 No extra redirect is required for GET; it uses the same path with a query param `?id=...`.
 
-## Local development (matching production)
+### Local development (matching production)
 
 Run Netlify Dev via pnpm so your frontend and the Netlify Function run together using the same paths as production:
 
