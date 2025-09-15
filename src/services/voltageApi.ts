@@ -289,7 +289,8 @@ export async function createTipPaymentMethods(
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
     throw new VoltageApiError('Amount must be a positive number');
   }
-  if (!voltageConfig.walletId) {
+  // Only require wallet in development; production uses server override
+  if (import.meta.env.DEV && !voltageConfig.walletId) {
     throw new VoltageApiError('Voltage wallet is not configured');
   }
 
@@ -304,7 +305,8 @@ export async function createTipPaymentMethods(
     const paymentRequest: CreateReceivePaymentRequest = {
       id: paymentId,
       payment_kind: 'bolt11', // Creates Lightning-only payment
-      wallet_id: voltageConfig.walletId,
+      // In dev, pass actual wallet; in prod, use placeholder; server will override
+      wallet_id: import.meta.env.DEV ? (voltageConfig.walletId as string) : 'server',
       amount_msats: amountMsats, // Amount in millisatoshis
       currency: 'btc',
       description,
