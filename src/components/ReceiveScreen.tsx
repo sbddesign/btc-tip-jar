@@ -174,10 +174,10 @@ export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy 
           dotType="dot"
           dotColor="#000000"
           copyOnTap="true"
-          placeholder={isLoading ? "true" : "false"}
-          error={error ? "true" : "false"}
+          placeholder={isLoading ? "true" : ""}
+          error={error ? "true" : ""}
           errorMessage={error || undefined}
-          complete={isPaymentComplete ? "true" : "false"}
+          complete={isPaymentComplete ? "true" : ""}
         />
       </div>
 
