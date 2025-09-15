@@ -43,3 +43,16 @@ status = 200
 ```
 
 No extra redirect is required for GET; it uses the same path with a query param `?id=...`.
+
+## Local development (matching production)
+
+Run Netlify Dev via pnpm so your frontend and the Netlify Function run together using the same paths as production:
+
+```bash
+pnpm dev
+```
+
+Notes:
+
+- Ensure your local environment has `VOLTAGE_*` (or `VITE_VOLTAGE_*`) variables available to the function. You can use a `.env` file or Netlify CLI environment management.
+- The frontend no longer needs `VITE_*` secrets for local dev when using `netlify dev`.

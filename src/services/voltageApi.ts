@@ -67,128 +67,51 @@ export class VoltageApiError extends Error {
 }
 
 class VoltageApi {
-  private baseUrl: string;
-  private apiKey: string;
-  private orgId: string;
-  private envId: string;
+  constructor() {}
 
-  constructor() {
-    this.baseUrl = voltageConfig.baseUrl;
-    this.apiKey = voltageConfig.apiKey;
-    this.orgId = voltageConfig.orgId;
-    this.envId = voltageConfig.envId;
-  }
-
-  private async makeRequest<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    
-    console.log('Voltage API Request:', { 
-      url, 
-      method: options.method || 'GET',
-      body: options.body ? JSON.parse(options.body as string) : null 
-    });
-    
-    const response = await fetch(url, {
-      ...options,
+  async createPayment(request: CreateReceivePaymentRequest): Promise<void> {
+    // Always use serverless function for consistent behavior
+    const response = await fetch('/api/voltage-payments', {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        ...options.headers,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new VoltageApiError(
+        `HTTP ${response.status}: ${response.statusText}`,
+        response.status,
+        errorText
+      );
+    }
+
+    // 202 response has no body, just return
+    return;
+  }
+
+  async getPayment(paymentId: string): Promise<Payment> {
+    // Always use serverless function for consistent behavior
+    const response = await fetch(`/api/voltage-payments?id=${encodeURIComponent(paymentId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
       },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      
-      console.error('Voltage API Error:', { status: response.status, errorText });
-      
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.message || errorJson.detail || errorMessage;
-      } catch {
-        // Use the raw text if it's not JSON
-        errorMessage = errorText || errorMessage;
-      }
-      
-      throw new VoltageApiError(errorMessage, response.status, errorText);
+      throw new VoltageApiError(
+        `HTTP ${response.status}: ${response.statusText}`,
+        response.status,
+        errorText
+      );
     }
 
-    // Handle responses with no body (like 202)
-    if (response.status === 202 || response.headers.get('content-length') === '0') {
-      console.log('Voltage API Response: 202 Accepted (no body)');
-      return undefined as T;
-    }
-    
-    const result = await response.json();
-    console.log('Voltage API Response:', result);
-    return result;
-  }
-
-  async createPayment(request: CreateReceivePaymentRequest): Promise<void> {
-    // In production, use serverless function to avoid CORS issues
-    if (!import.meta.env.DEV) {
-      const response = await fetch('/api/voltage-payments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new VoltageApiError(
-          `HTTP ${response.status}: ${response.statusText}`,
-          response.status,
-          errorText
-        );
-      }
-
-      // 202 response has no body, just return
-      return;
-    }
-
-    // Development: use proxy
-    const endpoint = `/organizations/${this.orgId}/environments/${this.envId}/payments`;
-    
-    await this.makeRequest<void>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-  }
-
-  async getPayment(paymentId: string): Promise<Payment> {
-    // In production, call serverless function to keep secrets server-side
-    if (!import.meta.env.DEV) {
-      const response = await fetch(`/api/voltage-payments?id=${encodeURIComponent(paymentId)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new VoltageApiError(
-          `HTTP ${response.status}: ${response.statusText}`,
-          response.status,
-          errorText
-        );
-      }
-
-      const payment = await response.json();
-      return payment as Payment;
-    }
-
-    // Development: use proxy
-    const endpoint = `/organizations/${this.orgId}/environments/${this.envId}/payments/${paymentId}`;
-    return this.makeRequest<Payment>(endpoint, {
-      method: 'GET',
-    });
+    const payment = await response.json();
+    return payment as Payment;
   }
 }
 

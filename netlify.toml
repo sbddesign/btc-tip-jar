@@ -12,3 +12,9 @@
 
 [build.environment]
   NODE_VERSION = "18"
+
+[dev]
+  # Start the Vite dev server when running `netlify dev`
+  command = "pnpm dev:vite"
+  # Tell Netlify Dev which port Vite uses
+  targetPort = 5173
