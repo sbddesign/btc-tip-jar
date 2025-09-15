@@ -1,69 +1,58 @@
-# React + TypeScript + Vite
+# BTC Tip Jar
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Production-ready configuration for using Voltage API via a Vite React app deployed on Netlify.
 
-Currently, two official plugins are available:
+## Environment variables
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+There are two environments in play:
 
-## Expanding the ESLint configuration
+- Development (Vite dev server)
+- Production (Netlify + Netlify Functions)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+To work consistently:
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- In development, the frontend uses Vite env variables and a dev proxy. Define these in a `.env.local` file with the `VITE_` prefix.
+- In production, the Netlify Function reads either non-prefixed or `VITE_`-prefixed variables so you can set whichever is convenient. The frontend does not require secrets in production.
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+Required variables:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `VOLTAGE_API_KEY` or `VITE_VOLTAGE_API_KEY`
+- `VOLTAGE_ORG_ID` or `VITE_VOLTAGE_ORG_ID`
+- `VOLTAGE_ENV_ID` or `VITE_VOLTAGE_ENV_ID`
+- `VOLTAGE_WALLET_ID` or `VITE_VOLTAGE_WALLET_ID`
+
+Recommended setups:
+
+- Development (`.env.local`): set only `VITE_*` variables.
+- Netlify (Production): set either `VOLTAGE_*` or `VITE_VOLTAGE_*`. The function accepts both.
+
+## How requests flow
+
+- Development: frontend calls `'/api/voltage'` (Vite proxy) with `VITE_*` credentials.
+- Production: frontend calls Netlify Function `'/api/voltage-payments'` for both POST (create) and GET (fetch by id). The function injects credentials from environment variables and never exposes them to the client.
+
+## Netlify configuration
+
+`netlify.toml` contains a redirect:
+
+```toml
+[[redirects]]
+from = "/api/voltage-payments"
+to = "/.netlify/functions/voltage-payments"
+status = 200
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+No extra redirect is required for GET; it uses the same path with a query param `?id=...`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Local development (matching production)
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Run Netlify Dev via pnpm so your frontend and the Netlify Function run together using the same paths as production:
+
+```bash
+pnpm dev
 ```
+
+Notes:
+
+- Ensure your local environment has `VOLTAGE_*` (or `VITE_VOLTAGE_*`) variables available to the function. You can use a `.env` file or Netlify CLI environment management.
+- The frontend no longer needs `VITE_*` secrets for local dev when using `netlify dev`.

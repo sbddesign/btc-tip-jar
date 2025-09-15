@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "netlify dev",
+    "dev:vite": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -13,7 +14,7 @@
     "@netlify/functions": "^4.2.5",
     "@sbddesign/bui-icons": "0.0.4",
     "@sbddesign/bui-tokens": "0.0.4",
-    "@sbddesign/bui-ui": "0.0.6",
+    "@sbddesign/bui-ui": "0.0.7",
     "@tailwindcss/vite": "^4.1.12",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -21,6 +22,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "netlify-cli": "^17.37.0",
     "@eslint/js": "^9.33.0",
     "@types/node": "^24.3.1",
     "@types/react": "^19.1.10",
