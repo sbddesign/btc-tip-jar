@@ -175,7 +175,7 @@ function CustomAmountModal({
                          <BuiButton
                label="Continue"
                wide="true"
-               disabled={!isAmountValid ? "true" : "false"}
+               disabled={!isAmountValid ? "true" : ""}
                onClick={handleConfirm}
              >
             </BuiButton>
