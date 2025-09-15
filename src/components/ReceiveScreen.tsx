@@ -156,7 +156,6 @@ export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy 
         <span className="text-[var(--text-secondary)]">
           <BuiBitcoinValue
             amount={bitcoinAmount.toString()}
-            showEstimate="false"
             textSize="3xl"
           />
         </span>
@@ -200,7 +199,7 @@ export default function ReceiveScreen({ amount, bitcoinAmount, onGoBack, onCopy 
               styleType="filled"
               size="large"
               wide="true"
-              disabled={isLoading || !!error || !paymentData ? "true" : "false"}
+              disabled={isLoading || !!error || !paymentData ? "true" : ""}
               onClick={handleCopy}
             >
               {isCopied ? <CheckCircleIcon /> : <CopyIcon />}
